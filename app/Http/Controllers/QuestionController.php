@@ -51,6 +51,8 @@ class QuestionController extends Controller
             'src' => [],
             'title' => '',
         ];
+//        $reg2 = '/(\?imageView2\/)+\w+[\w\/\.\-]*(jpg|gif|png)/i';
+//        $str = preg_replace($reg2,'',$str);
         foreach ($matches[0] as $value) {
             $str = str_replace('<br>','',$str);
             $str = str_replace($value,'',$str);
