@@ -122,4 +122,12 @@ class QuestionRepository{
             ->update(['status' => 2]);
     }
 
+    public function getResidueNum($knowledge)
+    {
+        return $this->model->from('question_ht_gk')
+            ->where('knowledge',$knowledge)
+            ->where('status',0)
+            ->count();
+    }
+
 }

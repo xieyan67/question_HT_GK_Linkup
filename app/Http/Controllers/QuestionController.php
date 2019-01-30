@@ -34,8 +34,8 @@ class QuestionController extends Controller
         $questionHT = $data['questionHT'];
         $htAll = $data['htAll'];
         $gkAll = $data['gkAll'];
-
-        return view('question',compact('questionGK','questionHT','questionType','htAll','gkAll','knowledge'));
+        $residueNum = $this->question->getResidueNum($knowledge);
+        return view('question',compact('questionGK','questionHT','questionType','htAll','gkAll','knowledge','residueNum'));
     }
 
     /** 获取 华图 题目中存在的图片连接

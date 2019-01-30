@@ -33,6 +33,9 @@
                 <input type="button" value="{{ $v }}" class="btn btnType" onclick="btnSearchClick(this,'{{ $v }}')">
             @endforeach
             <input type="button" value="保存" onclick="btnSubmit(this)" style="font-size:1em;height:1.7em;text-align:center;border:1px solid #c8cccf;background-color: #da4f49"/>
+            <span style="margin-left: 30px;">
+                剩余：<span style="color: red">{{ $residueNum }}</span> 次
+            </span>
         </form>
     </div>
     {{-- HT --}}
