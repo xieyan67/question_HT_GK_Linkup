@@ -154,4 +154,27 @@ class QuestionController extends Controller
      * select *,count(q.id) num from question_ht_gk q where q.status = 2 group by  q.ht_qid
      * HAVING num = (select count(qs.id) from question_ht_gk qs where qs.ht_qid = q.ht_qid)
      */
+    public function selfRepeatQuestion(Request $request)
+    {
+        $type = $request->input('type');
+        $qid = $request->input('self_qid');
+        $repeatQids = $request->input('repeat_qid');
+        $knowledge = $request->input('knowledge');
+        if(empty($qid) || empty($repeatQids) || !is_array($repeatQids)){
+            return [
+                'success' => false,
+                'message' => '请求参数错误！请重试'
+            ];
+        }
+        if($type == 'ht'){
+            $isSuccess = $this->question->selfQuestionRepeatHT($qid,$repeatQids);
+        }else{
+            $isSuccess = $this->question->selfQuestionRepeatGK($qid,$repeatQids);
+        }
+        return [
+            'success' => $isSuccess,
+            'message' => $isSuccess ? '保存成功！' : '保存失败！请重试',
+            'residueNum' => $this->question->getResidueNum($knowledge)
+        ];
+    }
 }

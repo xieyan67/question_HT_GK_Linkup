@@ -16,6 +16,7 @@ Route::get('/', 'QuestionController@index');
 Route::match(['get','post'],'question/index','QuestionController@index')->name('question.index');
 Route::match(['get','post'],'question/save_question','QuestionController@saveQuestion')->name('question.save_question');
 Route::match(['get','post'],'question/question_query','QuestionController@questionQuery')->name('question.question_query');
+Route::match(['get','post'],'question/self_repeat_question','QuestionController@selfRepeatQuestion')->name('question.self_repeat_question');
 
 
 

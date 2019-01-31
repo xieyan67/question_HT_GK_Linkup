@@ -5,8 +5,8 @@
     <title>question_HT_GK</title>
     <script src="/js/jquery.min.js"></script>
     <style>
-        .div-HT{ float:left;width:45%;}
-        .div-GK{ float:right;width:45%;}
+        .div-HT{ float:left;width:48%;}
+        .div-GK{ float:right;width:48%;}
 
         img {
             width: 500px;
@@ -22,6 +22,9 @@
             text-align:center;
             margin-right: 10px;
         }
+        .checkbox{
+            zoom:180%
+        }
     </style>
 </head>
 <body>
@@ -34,7 +37,7 @@
             @endforeach
             <input type="button" value="保存" onclick="btnSubmit(this)" style="font-size:1em;height:1.7em;text-align:center;border:1px solid #c8cccf;background-color: #da4f49"/>
             <span style="margin-left: 30px;">
-                剩余：<span style="color: red">{{ $residueNum }}</span> 次
+                剩余：<span style="color: red" id="questionNum">{{ $residueNum }}</span> 次
             </span>
         </form>
     </div>
@@ -48,6 +51,7 @@
                             华图题库
                         </span>
                         <input type="button" value="换一批" onclick="renovateQuestion(this,0)" style="height:1.7em;font-size:1em;background-color:#5bb75b;float: right">
+                        <input type="button" value="提交" onclick="submitSelfCheckBox('ht')" style="height:1.7em;font-size:1em;background-color:#4bb1cf;"/>
                     </td>
                 </tr>
             </thead>
@@ -55,7 +59,8 @@
                 @foreach($questionHT as $HT)
                     <tr>
                         <td>
-                            <input type="checkbox" id="ht_check{{ $HT['id'] }}" onclick="htCheckBoxClick(this,'{{ $HT['id'] }}')"/>{{ $HT['id'] }}
+                            <input type="checkbox" id="self_ht_check_{{ $HT['id'] }}" class="checkbox" onclick="selfCheckBoxClick(this,'{{ $HT['id'] }}','ht')">
+                            <input type="text" style="width: 50px;color: red" disabled id="self_ht_{{ $HT['id'] }}">
                         </td>
                         <td>
                             {{ $HT['qTitle']['title'] }}
@@ -64,6 +69,9 @@
                                 <img src='{{ $src }}'/>
                             @endforeach
 
+                        </td>
+                        <td>
+                            <input type="checkbox" id="ht_check_{{ $HT['id'] }}" onclick="htCheckBoxClick(this,'{{ $HT['id'] }}')" class="checkbox" value="{{ $HT['id'] }}"/>{{ $HT['id'] }}
                         </td>
                     </tr>
                 @endforeach
@@ -80,6 +88,7 @@
                             公考题库
                         </span>
                         <input type="button" value="换一批" onclick="renovateQuestion(this,1)" style="height:1.7em;font-size:1em;background-color:#5bb75b;">
+                        <input type="button" value="提交" onclick="submitSelfCheckBox('gk')" style="height:1.7em;font-size:1em;background-color:#4bb1cf;float: right"/>
                     </td>
                 </tr>
             </thead>
@@ -87,11 +96,16 @@
                 @foreach($questionGK as $GK)
                     <tr>
                         <td>
-                            <input type="checkbox" id="gk_check_{{ $GK['id'] }}" onclick="gkCheckBoxClick(this,'{{ $GK['id'] }}')" value="{{ $GK['id'] }}"/>
-                            <input type="text" style="width: 50px;" disabled id="gk_{{ $GK['id'] }}">
+                            <input type="checkbox" id="gk_check_{{ $GK['id'] }}" onclick="gkCheckBoxClick(this,'{{ $GK['id'] }}')" value="{{ $GK['id'] }}" class="checkbox"/>
+                            <input type="text" style="width: 60px;color: #0000F0;font-size: 15px" disabled id="gk_{{ $GK['id'] }}" >
+                            {{ $GK['id'] }}
                         </td>
                         <td>
                             {{ $GK['question'] }}
+                        </td>
+                        <td>
+                            <input type="checkbox" id="self_gk_check_{{ $GK['id'] }}" class="checkbox" onclick="selfCheckBoxClick(this,'{{ $GK['id'] }}','gk')">
+                            <input type="text" style="width: 50px;color: red" disabled id="self_gk_{{ $GK['id'] }}">
                         </td>
                     </tr>
                 @endforeach
@@ -187,7 +201,7 @@
             //清除已选的数据
             for (var i = 0;i < len; i++){
                 if(questionIds[i].gk_qid == gk_qid){
-                    $('#ht_check'+questionIds[i].ht_qid).prop('checked',false)
+                    $('#ht_check_'+ questionIds[i].ht_qid).prop('checked',false)
                     $('#gk_'+gk_qid).val('');
                     questionIds.splice(i,1)
                 }
@@ -260,22 +274,29 @@
                     if(type == 1){
 
                         $('#questionGK_tbody').html(questionGK_tr(question))
-
                         gkAllQids = JSON.parse(result.qids)
-
                         $('#questionHT_tbody input:checked').each(function (n,v) {
-                            $(v).prop('checked',false);
+                            var obj = $(v).val()
+                            var ht_check_obj = $('#ht_check_'+ obj)
+                            ht_check_obj.prop('checked',false);
                         })
+                        gk_self_qid = '';
+                        gk_self_Arr = {qid:'',repeat_qid:[]};
+
                     }else {
 
                         $('#questionHT_tbody').html(questionHT_tr(question))
                         htAllQids = JSON.parse(result.qids)
-
                         $('#questionGK_tbody input:checked').each(function (n,v) {
-                            $(v).prop('checked',false);
-                            var obj = $('#gk_'+$(v).val());
-                            obj.val('');
+                            var obj = $(v).val();
+                            var gk_obj = $('#gk_'+ obj);
+                            gk_obj.val('');
+                            var gk_check_obj = $('#gk_check_'+ obj)
+                            gk_check_obj.prop('checked',false)
                         })
+
+                         ht_self_qid = '';
+                         ht_self_Arr = {qid:'',repeat_qid:[]};
                     }
 
                     checkqid = ''
@@ -294,10 +315,14 @@
             var que = getImg_8(question[i].question, url);
             htm += '<tr>' +
                         '<td>' +
-                            '<input type="checkbox" id="gk_check_'+ question[i].id +'" onclick="gkCheckBoxClick(this,'+ question[i].id +')" value='+ question[i].id +'/>' +
-                            '<input type="text" style="width: 50px;" disabled id="gk_'+ question[i].id +'">'+
+                            '<input type="checkbox" id="gk_check_'+ question[i].id +'" onclick="gkCheckBoxClick(this,'+ question[i].id +')" value='+ question[i].id +' class="checkbox"/>' +
+                            '<input type="text" style="width: 60px;color: #0000F0;font-size: 15px" disabled id="gk_'+ question[i].id +'">'+ question[i].id +
                         '</td>'+
                         '<td>'+ que +'</td>'+
+                        '<td>'+
+                            '<input type="checkbox" id="self_gk_check_'+ question[i].id +'" class="checkbox" onclick="selfCheckBoxClick(this,'+ question[i].id +',\'gk\')">'+
+                            '<input type="text" style="width: 50px;color: red" disabled id="self_gk_'+ question[i].id +'">'+
+                        '</td>'+
                     '</tr>';
         }
         return htm;
@@ -307,17 +332,24 @@
         var len = question.length
         var htm = ''
         for(var j = 0;j < len; j++){
-            htm += '<tr>' +
-                    '<td>' +
-                    '<input type="checkbox" id="ht_check'+ question[j].id +'" onclick="htCheckBoxClick(this,'+ question[j].id +')"/>'+ question[j].id +
-                    '</td>'+
+            htm += '<tr>'
+
+            htm += '<td>' +
+                        '<input type="checkbox" id="self_ht_check_'+ question[j].id +'" class="checkbox" onclick="selfCheckBoxClick(this,'+ question[j].id +',\'ht\')">'+
+                        '<input type="text" style="width: 50px;color: red" disabled id="self_ht_'+ question[j].id +'">'+
+                    '</td>';
+            htm +=
                     '<td>'+ question[j].qTitle.title ;
             var src = question[j].qTitle.src
             var srcLen = src.length
             for (var k = 0; k < srcLen; k++){
                 htm += '<img src='+ src[k] +'>';
             }
-            htm += '</td></tr>';
+            htm += '</td>' +
+                        '<td>' +
+                        '<input type="checkbox" id="ht_check_'+ question[j].id +'" onclick="htCheckBoxClick(this,'+ question[j].id +')" class="checkbox" value='+ question[j].id +'/>'+ question[j].id +
+                        '</td>'+
+                '</tr>';
         }
         return htm;
     }
@@ -347,4 +379,93 @@
         }
         return ascii;
     }
+
+    var ht_self_qid = '';
+    var ht_self_Arr = {qid:'',repeat_qid:[]};
+    var gk_self_qid = '';
+    var gk_self_Arr = {qid:'',repeat_qid:[]};
+    function selfCheckBoxClick(self,qid,type) {
+        var self_qid = type == 'ht' ? ht_self_qid : gk_self_qid
+        var self_Arr = type == 'ht' ? ht_self_Arr : gk_self_Arr
+
+        if($(self).prop('checked')){
+            if(self_qid.length <= 0 ){
+                self_qid = qid
+                self_Arr.qid = self_qid
+
+            }else {
+                if(self_qid != qid){
+                    self_Arr.repeat_qid.push(qid)
+                }
+            }
+            $('#self_'+ type +'_'+ qid).val(self_qid)
+        }else {
+            if(self_qid != qid){
+                self_Arr.repeat_qid.splice($.inArray(qid, self_Arr.repeat_qid), 1);
+                $('#self_'+ type +'_'+ qid).val('')
+            }else {
+                if(self_Arr.repeat_qid.length > 0){
+                    $(self).prop('checked',true)
+                    alert('请先取消其他已选中的题目！');
+                }else {
+                    $(self).prop('checked',false)
+                    $('#self_'+ type +'_'+ qid).val('')
+                    self_Arr.qid = '';
+                    self_qid = '';
+                }
+            }
+        }
+        if(type == 'ht'){
+            ht_self_qid = self_qid
+            ht_self_Arr = self_Arr
+        }else {
+            gk_self_qid = self_qid
+            gk_self_Arr = self_Arr
+        }
+    }
+    //华图重题 提交
+    function submitSelfCheckBox(type) {
+        var self_qid = type == 'ht' ? ht_self_qid : gk_self_qid
+        var self_Arr = type == 'ht' ? ht_self_Arr : gk_self_Arr
+
+        if(self_Arr.repeat_qid.length <= 0 || self_qid.length <= 0){
+            alert('请选择重复的题目！');
+            return;
+        }
+
+        if(confirm('是否确认提交已选重复的题目！')){
+            $.ajax({
+                url:"{{ route('question.self_repeat_question') }}",
+                type:"POST",
+                data:{
+                    type: type,
+                    self_qid: self_qid,
+                    repeat_qid: self_Arr.repeat_qid,
+                    knowledge: $('#knowledge').val(),
+                    _token: "{{csrf_token()}}"
+                },
+                success:function(result){
+                    alert(result.message)
+                    if(result.success){
+                        var repeat_qid = self_Arr.repeat_qid
+                        var len = repeat_qid.length
+                        $('#self_'+ type +'_check_'+ self_qid).attr('disabled','disabled')
+                        for (var i = 0;i < len;i++){
+                            $('#self_'+ type +'_check_' + repeat_qid[i]).remove()
+                            $('#'+ type +'_check_' + repeat_qid[i]).remove()
+                        }
+                        if(type == 'ht'){
+                            ht_self_qid = ''
+                            ht_self_Arr = {qid:'',repeat_qid:[]}
+                        }else {
+                            gk_self_qid = ''
+                            gk_self_Arr = {qid:'',repeat_qid:[]}
+                        }
+                        $('#questionNum').html(result.residueNum)
+                    }
+                }
+            })
+        }
+    }
+
 </script>
