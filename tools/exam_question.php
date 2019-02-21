@@ -62,8 +62,6 @@ foreach ($ht_question as $v){
     }
 }
 
-var_dump(count($ht_question));
-return;
 if(!empty($arr_file)){
     foreach ($arr_file as $files){
         // 7获取第N题 9真题试卷名称 12题目ID
