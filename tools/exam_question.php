@@ -95,64 +95,64 @@ function getInsertSql($question,$pdo,$category,$files){
             $examsName = $q_val[10];//$q_val[9];
             $area = getAreaaName($examsName);//empty($q_val[10]) ? getAreaaName($examsName) : $q_val[10];
             $year = $q_val[9];//$q_val[11];
-            $pos = strpos($examsName,'2012年1202吉林公务员《行测》试卷（乙卷）');
-            if($pos >= 0 && $pos !== false){
-                $num++;
-                var_dump($files);
-                var_dump($q_val[10]);
+//            $pos = strpos($examsName,'2012年1202吉林公务员《行测》试卷（乙卷）');
+//            if($pos >= 0 && $pos !== false){
+//                $num++;
+//                var_dump($files);
+//                var_dump($q_val[10]);
+//            }
+
+            $course = getCourse($examsName);
+            if(!is_numeric($qid)){
+                continue;
+            }
+            //验证真题试卷是否存在
+            $examsSql = "SELECT id,count(id) AS num FROM exams where name = '$examsName'";
+            $exams = $pdo->query($examsSql);
+            $examsArray = $exams->fetch(2);//fetchAll(PDO::FETCH_ASSOC);
+
+            $isQuestion = false;
+            $examsId = 0;
+            if($examsArray['num'] > 0){
+                //真题试卷存在 验证exam_questions 是否已关联  未关联需要添加
+                $examsQueSql = "SELECT COUNT(id) AS q_num FROM exam_questions WHERE eid = ".$examsArray['id']." AND qid = $qid";
+                $examsQue = $pdo->query($examsQueSql);
+                $examsQueArr = $examsQue->fetch(2);
+                if($examsQueArr['q_num'] <= 0){
+                    $examsId = $examsArray['id'];
+                    $isQuestion = true;
+                }else{
+                    continue;
+                }
+            }else{
+                //真题试卷不存在
+                //新增exams
+                $segmentStr = strpos($examsName,'国家');
+                $segment = $segmentStr >= 0 && $segmentStr !== false ? '国考' : '省考';
+                $area = empty($area) && $segment == '国考' ? '全国' : $area;
+
+                $examsInsertSql = "INSERT INTO exams(mid,name,area,year,segment,course) VALUE(0,'$examsName','$area','$year','$segment','$course')";
+                $examRes = $pdo->exec($examsInsertSql);
+                if(!$examRes){//添加失败
+                    var_dump($examsInsertSql);
+                    return;
+                }
+                $examsId = $pdo->lastInsertId();
+                $isQuestion = true;
             }
 
-//            $course = getCourse($examsName);
-//            if(!is_numeric($qid)){
-//                continue;
-//            }
-//            //验证真题试卷是否存在
-//            $examsSql = "SELECT id,count(id) AS num FROM exams where name = '$examsName'";
-//            $exams = $pdo->query($examsSql);
-//            $examsArray = $exams->fetch(2);//fetchAll(PDO::FETCH_ASSOC);
-//
-//            $isQuestion = false;
-//            $examsId = 0;
-//            if($examsArray['num'] > 0){
-//                //真题试卷存在 验证exam_questions 是否已关联  未关联需要添加
-//                $examsQueSql = "SELECT COUNT(id) AS q_num FROM exam_questions WHERE eid = ".$examsArray['id']." AND qid = $qid";
-//                $examsQue = $pdo->query($examsQueSql);
-//                $examsQueArr = $examsQue->fetch(2);
-//                if($examsQueArr['q_num'] <= 0){
-//                    $examsId = $examsArray['id'];
-//                    $isQuestion = true;
-//                }else{
-//                    continue;
-//                }
-//            }else{
-//                //真题试卷不存在
-//                //新增exams
-//                $segmentStr = strpos($examsName,'国家');
-//                $segment = $segmentStr >= 0 && $segmentStr !== false ? '国考' : '省考';
-//                $area = empty($area) && $segment == '国考' ? '全国' : $area;
-//
-//                $examsInsertSql = "INSERT INTO exams(mid,name,area,year,segment,course) VALUE(0,'$examsName','$area','$year','$segment','$course')";
-//                $examRes = $pdo->exec($examsInsertSql);
-//                if(!$examRes){//添加失败
-//                    var_dump($examsInsertSql);
-//                    return;
-//                }
-//                $examsId = $pdo->lastInsertId();
-//                $isQuestion = true;
-//            }
-//
-//            if($isQuestion && $examsId > 0 && (!isset($qids[$examsId]) || !in_array($qid,$qids[$examsId]))){
-//                $qids[$examsId][] = $qid;
-//                $num++;
-//                //关联exam_questions
-//                $sourses = explode('、',$questionSource);
-//                $pattern = count($sourses) > 1 ?  "/\w*$examsName\w*第(\d+)题/" : "/\w*第(\d+)题/" ;
-//                preg_match($pattern,$questionSource,$match);
-//                $index = isset($match[1]) ? $match[1] : 0;
-//
-//                $examQuestionSql .= "($examsId,$qid,$index,'0.8',0,'$category'),";
-//
-//            }
+            if($isQuestion && $examsId > 0 && (!isset($qids[$examsId]) || !in_array($qid,$qids[$examsId]))){
+                $qids[$examsId][] = $qid;
+                $num++;
+                //关联exam_questions
+                $sourses = explode('、',$questionSource);
+                $pattern = count($sourses) > 1 ?  "/\w*$examsName\w*第(\d+)题/" : "/\w*第(\d+)题/" ;
+                preg_match($pattern,$questionSource,$match);
+                $index = isset($match[1]) ? $match[1] : 0;
+
+                $examQuestionSql .= "($examsId,$qid,$index,'0.8',0,'$category'),";
+
+            }
 
         }
 
