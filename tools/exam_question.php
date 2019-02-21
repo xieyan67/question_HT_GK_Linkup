@@ -71,15 +71,15 @@ if(!empty($arr_file)){
 
         if(!empty($question)){
             $sql = getInsertSql($question,$pdo,'常识判断',$files);
-//            if(isset($sql)){
-//                $examRes = $pdo->exec($sql);
-//                var_dump($files);
-//                if(!$examRes){//添加失败
-//                    var_dump($sql);
-//                    return;
-//                }
-//                var_dump($examRes);
-//            }
+            if(isset($sql)){
+                $examRes = $pdo->exec($sql);
+                var_dump($files);
+                if(!$examRes){//添加失败
+                    var_dump($sql);
+                    return;
+                }
+                var_dump($examRes);
+            }
         }
 
     }
