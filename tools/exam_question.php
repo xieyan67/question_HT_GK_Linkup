@@ -66,8 +66,8 @@ if(!empty($arr_file)){
     foreach ($arr_file as $files){
         // 7获取第N题 9真题试卷名称 12题目ID
         $question = importExecl($files, 0);
-//        var_dump($files);
-//        var_dump(count($question));
+        var_dump($files);
+        var_dump(count($question));
 
         if(!empty($question)){
             $sql = getInsertSql($question,$pdo,'常识判断',$files);
