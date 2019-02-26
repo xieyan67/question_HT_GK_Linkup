@@ -177,4 +177,92 @@ class QuestionController extends Controller
             'residueNum' => $this->question->getResidueNum($knowledge)
         ];
     }
+
+    //导数据代码
+    public function questionsHTQuery(){
+        $dsn =  "mysql:host=123.57.209.247;port=3306;dbname=question-ht-gk;charset=utf8";
+        $user = 'questionbank';
+        $pass = 'some_pass';
+        $pdo = new \PDO($dsn, $user, $pass);
+        //// 2>设置字符集
+        $pdo->exec('SET NAMES UTF8');
+//        $new_htSql = "select ht.*,count(q.id) num from question_ht_gk2 q JOIN question_12_11 ht ON ht.id = q.ht_qid
+//                      where q.status = 2 and q.repeat_qid is null group by q.ht_qid HAVING num = (select count(qs.id) from question_ht_gk2 qs where qs.ht_qid = q.ht_qid)";
+        $new_htSql = "select ht.*,q.gk_qid from question_ht_gk2 q join question_12_11 ht on ht.id = q.ht_qid where q.status = 1 group by q.gk_qid";
+//        $new_htSql = "select * from exams_excel";
+        $new_htRes = $pdo->query($new_htSql);
+        $new_htArr = $new_htRes->fetchAll(2);
+        var_dump(count($new_htArr));
+        return;
+        $knowledge = [
+            '数量类' => 61,
+            '位置类' => 75,
+            '样式类' => 74,
+            '重构类' => 76,
+            '创新类' => 62,
+        ];
+        $storage = app('filesystem')->disk('local');
+//        var_dump(count($new_htArr));//2338
+//        return;
+        foreach ($new_htArr as $k => $value){
+
+//            $question = $this->replaceStr($value['qTitle'],$storage);//上传图片
+//            $selections = $this->replaceStr($value['qSelections'],$storage);//上传图片
+//            $parse = $this->replaceStr($value['qAnalysis'],$storage);//上传图片
+//            $answer = json_encode(['answer' => $value['qAnswer'] ,'parse' => $parse],JSON_UNESCAPED_UNICODE);
+//            $knowledge_id = isset($knowledge[$value['qExamineCenter']]) ? $knowledge[$value['qExamineCenter']] : NULL;
+//            if(is_null($knowledge_id)){
+//                var_dump($value);
+//                return;
+//            }
+//            $gkInsertSql = "INSERT INTO question2(question,selections,type,answer,knowledge_id,sources,score,`index`,has_img) VALUE ";
+//            $gkInsertSql .= "('$question','$selections','".$value['qType']."','$answer',$knowledge_id,'".$value['source']."','0.8',".$value['indexSource'].",1)";
+//
+//            if(!$pdo->exec($gkInsertSql)){
+//                echo 'gkInsertSql ==' .$gkInsertSql;
+//                return;
+//            }
+//            $qid = $value['gk_qid'];
+
+            //添加exam_excel
+//            $examExcelSql = "INSERT INTO exams_excel(indexSource,source,qExamTitle,examArea,examYear,qid,ht_qid) VALUE ";
+//            $examArea = $value['examArea'] == '国家' ? '全国' : $value['examArea'];
+//            $examExcelSql .= "('".$value['indexSource']."','".$value['source']."','".$value['qExamTitle']."','".$examArea."','".$value['examYear']."',$qid,".$value['id'].")";
+//            if(!$pdo->exec($examExcelSql)){
+//                echo 'examExcel === '.$examExcelSql;
+//                return;
+//            }
+        }
+
+    }
+
+    public function replaceStr($str,$storage,$reg = '/http:\/\/tiku\.+\w+\.+\w+[\w\/\.\-]*(jpg|gif|png|PNG|jpeg)/',$path = 'ht_image')
+    {
+        //http://tsingzone-gk-test.oss-cn-beijing.aliyuncs.com/questions/4/31feed7a89a325aff521e824816649df.png
+
+        while (preg_match($reg, $str,$res)){
+//            echo $str.PHP_EOL;
+            if (count($res) == 2){
+                $extension = $res[1];
+                $imageName = promotionCode(8,2);
+                $imageUrl = $path.DIRECTORY_SEPARATOR.'images'.DIRECTORY_SEPARATOR.$imageName.'.'.$extension;
+                $fileName = md5($imageName);
+                $fileName = $fileName.'.'.$extension;
+                $subFolder = (ord(substr($fileName, 0, 1)) + ord(substr($fileName, 1, 1))) % 8;
+                $subFolder .= '/';
+//                try{
+                $storage->put($imageUrl,file_get_contents($res[0]));
+//                }catch (\Exception $exception){
+//                    break;
+//                }
+                $localImageUrl = storage_path().'/app/ht_image/images/'.$imageName.'.'.$extension;
+
+                OSS::publicUpload('tsingzone-gk','questions/'.$subFolder.$fileName,$localImageUrl);
+
+                $str = str_replace($res[0],"<!--[img]".$fileName."[/img]-->",$str);
+            }
+        }
+
+        return $str;
+    }
 }
