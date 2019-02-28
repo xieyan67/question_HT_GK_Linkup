@@ -32,11 +32,9 @@ function getFilePathNameRecursion(&$arr_file, $directory, $dir_name='')
 }
 
 //获取所有文件
-//$dirPath = './question/ht_判断推理_最终版';//ht_资料分析_最终版 ht_数量关系_最终版   ht_常识判断_最终版  ht_判断推理_最终版
-//$arr_file = [];//['./question/言语-所有篇章阅读.xlsx']; 言语理解与表达
-//getFilePathNameRecursion($arr_file, $dirPath, './question/ht_判断推理_最终版');
-
-
+$dirPath = './question/ht1231';//ht_资料分析_最终版 ht_数量关系_最终版   ht_常识判断_最终版  ht_判断推理_最终版
+$arr_file = [];//['./question/言语-所有篇章阅读.xlsx']; 言语理解与表达
+getFilePathNameRecursion($arr_file, $dirPath, './question/ht1231');
 
 //连接数据库
 $dsn =  "mysql:host=123.57.209.247;port=3306;dbname=question-ht-gk;charset=utf8";
@@ -45,125 +43,311 @@ $pass = 'some_pass';
 $pdo = new PDO($dsn, $user, $pass);
 //// 2>设置字符集
 $pdo->exec('SET NAMES UTF8');
-$new_htSql = "select * from exams_excel";
-$new_htRes = $pdo->query($new_htSql);
-$arr_file = $new_htRes->fetchAll(2);
+//$new_htSql = "select * from exams_excel";
+//$new_htRes = $pdo->query($new_htSql);
+//$arr_file = $new_htRes->fetchAll(2);
 
 if(!empty($arr_file)){
     //Excel 表导入
-//    foreach ($arr_file as $files){
+    foreach ($arr_file as $files){
         // 7获取第N题 9真题试卷名称 12题目ID
-//        $question = importExecl($files, 0);
-//        if(!empty($files)){
-//            $sql = getInsertSql($question,$pdo,'言语理解与表达',$files);
-            $sql = getInsertSql($arr_file,$pdo,'判断推理');
+        $question = importExecl($files, 0);
+        if(!empty($files)){
+            $sql = getInsertSql($question,$pdo,'判断推理',$files);
+
+//            $sql = getInsertSql($arr_file,$pdo,'判断推理');
             if(isset($sql)){
                 $examRes = $pdo->exec($sql);
-//                var_dump($files);
+                var_dump($files);
                 if(!$examRes){//添加失败
                     var_dump($sql);
                     return;
                 }
                 var_dump($examRes);
             }
-//        }
-//    }
+
+        }
+    }
 }
 
 function getInsertSql($question,$pdo,$category,$files = NULL){
     $examQuestionSql = 'INSERT INTO exam_questions(eid,qid,`index`,score,difficulty,category) VALUE ';
+//    $examQuestionSql = 'INSERT INTO ht_questions_excel(qExamineCenter,qTitle,source,ht_qid,qExamTitle,examYear,qid,category) VALUE ';
     $num = 0;
     $qids = [];
-        foreach ($question as $q_key => $q_val){
+    foreach ($question as $q_key => $q_val){
+//            if(!empty($q_val[1])){
+//                $qid = is_numeric($q_val[11]) ? $q_val[11] : 'NULL';
+//                $examQuestionSql .= "('".$q_val[1]."','".$q_val[3]."','".$q_val[7]."',".$q_val[8].",'".$q_val[10]."','".$q_val[9]."',".$qid.",'".$category."'),";
+//            }
 
-//            $qid = $q_val[11];//$q_val[12];//$q_val[11];
-//            $questionSource = $q_val[7];
-//            $examsName = $q_val[10];//$q_val[9];//$q_val[10];
-//            $area = getAreaaName($examsName);//$q_val[10];//getAreaaName($examsName);
-//            $year = $q_val[9];//$q_val[11];//$q_val[9];
+        $qid = $q_val[11];//$q_val[12];//$q_val[11];
+        $questionSource = $q_val[7];
+        $examsName = $q_val[10];//$q_val[9];//$q_val[10];
+        $area = getAreaaName($examsName);//$q_val[10];//getAreaaName($examsName);
+        $year = $q_val[9];//$q_val[11];//$q_val[9];
+        $category = getQuestionCategory($q_val[1]);
 
-            $qid = $q_val['qid'];
-            $questionSource = $q_val['source'];
-            $examsName = $q_val['qExamTitle'];
-            $year = $q_val['examYear'];
-            $area = getAreaaName($examsName);
-            $course = getCourse($examsName);
+//            $qid = $q_val['qid'];
+//            $questionSource = $q_val['source'];
+//            $examsName = $q_val['qExamTitle'];
+//            $year = $q_val['examYear'];
+//            $area = getAreaaName($examsName);
+        $course = getCourse($examsName);
 //            除去2018年套卷
-            $delExam = [
-                '2008年四川省公务员考试《行测》真题',
-                '2014年重庆市公务员考试《行测》真题'
-            ];
-            if(!is_numeric($qid) || $year == '2018' || in_array($examsName,$delExam)){
-                continue;
-            }
-            $examsId = getExamsID($examsName);
-            if($examsId <= 0){
-                //验证真题试卷是否存在
-                $examsSql = "SELECT id,count(id) AS num FROM exams where name = '$examsName'";
-                $exams = $pdo->query($examsSql);
-                $examsArray = $exams->fetch(2);//fetchAll(PDO::FETCH_ASSOC);
+        $delExam = [
+            '2008年四川省公务员考试《行测》真题',
+            '2014年重庆市公务员考试《行测》真题'
+        ];
+        if(!is_numeric($qid) || $year == '2018' || in_array($examsName,$delExam)){
+            continue;
+        }
+        $examsId = getExamsID($examsName);
+        if($examsId <= 0){
+            //验证真题试卷是否存在
+            $examsSql = "SELECT id,count(id) AS num FROM exams where name = '$examsName'";
+            $exams = $pdo->query($examsSql);
+            $examsArray = $exams->fetch(2);//fetchAll(PDO::FETCH_ASSOC);
 
-                if($examsArray['num'] > 0){
-                    //真题试卷存在 验证exam_questions 是否已关联  未关联需要添加
-                    $examsQueSql = "SELECT COUNT(id) AS q_num FROM exam_questions WHERE eid = ".$examsArray['id']." AND qid = $qid";
-                    $examsQue = $pdo->query($examsQueSql);
-                    $examsQueArr = $examsQue->fetch(2);
-                    if($examsQueArr['q_num'] <= 0){
-                        $examsId = $examsArray['id'];
-//                        $isQuestion = true;
-                    }else{
-                        continue;
-                    }
-                }else{
-                    //真题试卷不存在
-                    //新增exams
-                    $segmentStr = strpos($examsName,'国家');
-                    $segment = $segmentStr >= 0 && $segmentStr !== false ? '国考' : '省考';
-                    $area = empty($area) && $segment == '国考' ? '全国' : $area;
-
-                    $examsInsertSql = "INSERT INTO exams(mid,name,area,year,segment,course) VALUE(0,'$examsName','$area','$year','$segment','$course')";
-                    $examRes = $pdo->exec($examsInsertSql);
-                    if(!$examRes){//添加失败
-                        var_dump($files);
-                        var_dump($examsInsertSql);
-                        return;
-                    }
-                    $examsId = $pdo->lastInsertId();
-//                    $isQuestion = true;
-                }
-            }else{
-                $examsQueSql = "SELECT COUNT(id) AS q_num FROM exam_questions WHERE eid = ".$examsId." AND qid = $qid";
+            if($examsArray['num'] > 0){
+                //真题试卷存在 验证exam_questions 是否已关联  未关联需要添加
+                $examsQueSql = "SELECT COUNT(id) AS q_num FROM exam_questions WHERE eid = ".$examsArray['id']." AND qid = $qid";
                 $examsQue = $pdo->query($examsQueSql);
                 $examsQueArr = $examsQue->fetch(2);
-                if($examsQueArr['q_num'] > 0){
+                if($examsQueArr['q_num'] <= 0){
+                    $examsId = $examsArray['id'];
+//                        $isQuestion = true;
+                }else{
                     continue;
                 }
-            }
+            }else{
+                //真题试卷不存在
+                //新增exams
+                $segmentStr = strpos($examsName,'国家');
+                $segment = $segmentStr >= 0 && $segmentStr !== false ? '国考' : '省考';
+                $area = empty($area) && $segment == '国考' ? '全国' : $area;
 
-            //过滤相同试卷且相同qid
-            if($examsId > 0 && (!isset($qids[$examsId]) || !in_array($qid,$qids[$examsId]))){
-                $qids[$examsId][] = $qid;
-                $num++;
-                //关联exam_questions
-                $sourses = explode('、',$questionSource);
-                $pattern = count($sourses) > 1 ?  "/\W*$examsName\W*第(\d+)题/" : "/\W*第(\d+)题/" ;
-                preg_match($pattern,$questionSource,$match);
-                $index = isset($match[1]) ? $match[1] : 0;
-                if($index <= 0){
-                    $num++;
-//                    $patt = "/\W*$year\W*[$area][\w\W\s\S]*第(\d+)题/";
-                    $patt = "/\W*$year+\W*$area+[\W|\s]+第(\d+)题/";
-                    preg_match($patt,$questionSource,$matchs);
-                    $index = isset($matchs[1]) ? $matchs[1] : 0;
+                $examsInsertSql = "INSERT INTO exams(mid,name,area,year,segment,course) VALUE(0,'$examsName','$area','$year','$segment','$course')";
+                $examRes = $pdo->exec($examsInsertSql);
+                if(!$examRes){//添加失败
+                    var_dump($files);
+                    var_dump($examsInsertSql);
+                    return;
                 }
-
-                $examQuestionSql .= "($examsId,$qid,$index,'0.8',0,'$category'),";
-
+                $examsId = $pdo->lastInsertId();
+//                    $isQuestion = true;
             }
+        }else{
+            $examsQueSql = "SELECT COUNT(id) AS q_num FROM exam_questions WHERE eid = ".$examsId." AND qid = $qid";
+            $examsQue = $pdo->query($examsQueSql);
+            $examsQueArr = $examsQue->fetch(2);
+            if($examsQueArr['q_num'] > 0){
+                continue;
+            }
+        }
+
+        //过滤相同试卷且相同qid
+        if($examsId > 0 && (!isset($qids[$examsId]) || !in_array($qid,$qids[$examsId]))){
+            $qids[$examsId][] = $qid;
+            $num++;
+            //关联exam_questions
+            $sourses = explode('、',$questionSource);
+            $pattern = count($sourses) > 1 ?  "/\W*$examsName\W*第(\d+)题/" : "/\W*第(\d+)题/" ;
+            preg_match($pattern,$questionSource,$match);
+            $index = isset($match[1]) ? $match[1] : 0;
+            if($index <= 0){
+                $num++;
+//                    $patt = "/\W*$year\W*[$area][\w\W\s\S]*第(\d+)题/";
+                $patt = "/\W*$year+\W*$area+[\W|\s]+第(\d+)题/";
+                preg_match($patt,$questionSource,$matchs);
+                $index = isset($matchs[1]) ? $matchs[1] : 0;
+            }
+
+            $examQuestionSql .= "($examsId,$qid,$index,'0.8',0,'$category'),";
 
         }
 
+    }
+
+//    return  rtrim($examQuestionSql,',');
     return $num > 0 ? rtrim($examQuestionSql,',') : NULL;
+}
+function getQuestionCategory($know)
+{
+    $category = array(
+        '数量关系' => ['最值问题',
+            '几何问题',
+            '概率问题',
+            '基础计算',
+            '费用问题',
+            '方程与不等式1',
+            '工程问题',
+            '时间问题2',
+            '行程问题',
+            '趣味杂题',
+            '容斥原理',
+            '排列组合',
+            '递推数列',
+            '多级数列',
+            '幂次数列',
+            '非整数数列',
+            '溶液问题',
+            '数图推理',
+            '拆分数列',
+            '点阵数数',
+            '特殊数列',
+            '基本数列',
+            '简单计算',
+            '增长率计算',
+            '其他类计算',
+            '增长量计算',
+            '综合分析',
+            '平均数计算',
+            '比重计算',
+            '比重大小比较',
+            '倍数计算',
+            '其他类比较',
+            '简单比较',
+            '增长量大小比较',
+            '间隔增长率计算',
+            '平均数大小比较',
+            '混合增长率计算',
+            '增长量计算',
+            '其他增长率比较',
+            '平均值增长率计算',
+            '增长率大小比较',
+            '年均增长率计算',
+            '基期量大小比较'],
+        '常识判断' => [
+            '哲学与马克思主义哲学',
+            '唯物论',
+            '辩证法',
+            '认识论',
+            '唯物史观',
+            '毛泽东思想与中国特色社会主义理论体系',
+            '中共党建',
+            '国内时政',
+            '国际时政',
+            '法理学',
+            '宪法',
+            '民法',
+            '刑法',
+            '行政法',
+            '诉讼法',
+            '经济法',
+            '马克思主义政治经济学',
+            '社会主义市场经济学',
+            '宏微观经济学',
+            '中国古代史',
+            '中国近现代史',
+            '世界史',
+            '文学常识',
+            '艺术常识',
+            '科技成就',
+            '科学常识',
+            '地理常识',
+            '公共管理常识',
+            '公文处理常识',
+        ],
+        '判断推理' => [
+            '数量类',
+            '样式类',
+            '位置类',
+            '重构类',
+            '创新类',
+            '多定义',
+            '单定义',
+            '语义类',
+            '映射类',
+            '集合类',
+            '语法类',
+            '论证',
+            '翻译推理',
+            '平行结构',
+            '原因解释',
+            '归纳推理',
+            '分析推理',
+            '事件排序',
+            '真假推理',
+            '其他类比',
+            '实体信息',
+            '其他逻辑',
+            '集合推理',
+            '科学推理',
+        ],
+        '言语理解与表达' => [
+            '综合考察',
+            '成语辨析',
+            '实词辨析',
+            '主旨概括',
+            '意图判断',
+            '细节理解',
+            '标题选择',
+            '语句填空',
+            '语句排序',
+            '下文推断',
+            '词语理解',
+            '态度理解',
+            '细节理解',
+            '综合考察',
+            '虚词辨析',
+            '病句辨析',
+            '歧义句辨析',
+            '意图判断（篇章）',
+            '下文推断（篇章）',
+            '上文推断',
+            '细节理解（篇章）',
+            '逻辑填空（篇章）',
+            '主旨概括（篇章）',
+            '代词指代',
+            '语句填空（篇章）',
+            '态度观点（篇章）',
+            '标题选择（篇章）',
+            '细节理解（篇章）',
+            '语句排序（篇章）',
+            '综合考察',
+            '基础知识',
+            '逻辑填空（篇章）',
+            '词语理解（篇章）',
+            '逻辑填空（篇章）',
+            '基础知识（篇章）',
+            '代词指代（篇章）',
+            '综合考察（篇章）',
+            '病句辨析（篇章）',
+            '文段衔接（篇章）',
+        ],
+        '资料分析' => [
+            '简单计算',
+            '增长率计算',
+            '其他类计算',
+            '增长量计算',
+            '综合分析',
+            '平均数计算',
+            '比重计算',
+            '比重大小比较',
+            '倍数计算',
+            '其他类比较',
+            '简单比较',
+            '增长量大小比较',
+            '间隔增长率计算',
+            '平均数大小比较',
+            '混合增长率计算',
+            '增长量计算',
+            '其他增长率比较',
+            '平均值增长率计算',
+            '增长率大小比较',
+            '年均增长率计算',
+            '基期量大小比较',
+        ],
+    );
+    $cate = '';
+    foreach ($category as $k=>$v){
+        if(in_array($know,$v)){
+            $cate = $k;
+            break;
+        }
+    }
+    return $cate;
 }
 
 function getExamsID($examName){
@@ -266,16 +450,16 @@ function getCourse($examsName){
 //获取地址名
 function getAreaaName($examsName){
 
-   $options = ProOptions();
-   $area = '';
-   foreach ($options as $v){
-       $pos = strpos($examsName,$v);
-       if($pos >= 0 && $pos !== false){
-           $area = $v;
-           break;
-       }
-   }
-   return $area;
+    $options = ProOptions();
+    $area = '';
+    foreach ($options as $v){
+        $pos = strpos($examsName,$v);
+        if($pos >= 0 && $pos !== false){
+            $area = $v;
+            break;
+        }
+    }
+    return $area;
 }
 
 function ProOptions(){
